@@ -19,6 +19,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<FeedingSchedule> feedingRecords = [];
 
   String? _selectedBreed;
+  int? _selectedAge; // Change to int for numeric age selection
   final TextEditingController _searchController = TextEditingController();
 
   final List<String> breeds = [
@@ -43,6 +44,12 @@ class _HomeScreenState extends State<HomeScreen> {
     "Bengal Cat",
     "Ragdoll",
   ];
+
+  // List for pet ages (numbers from 1 to 20)
+  final List<int> petAges = List.generate(
+    20,
+    (index) => index + 1,
+  ); // List of ages from 1 to 20
 
   List<String> filteredBreeds = [];
 
@@ -76,9 +83,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _setFeedingSchedule() async {
-    if (_selectedBreed == null) {
+    if (_selectedBreed == null || _selectedAge == null) {
+      // Check if both breed and age are selected
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select a breed first")),
+        const SnackBar(content: Text("Please select breed and age first")),
       );
       return;
     }
@@ -106,7 +114,9 @@ class _HomeScreenState extends State<HomeScreen> {
       final measurement = await _askForMeasurement();
       if (measurement == null || measurement.trim().isEmpty) return;
 
-      print("Creating schedule with breed: $_selectedBreed");
+      print(
+        "Creating schedule with breed: $_selectedBreed, age: $_selectedAge",
+      );
       print("User ID: ${user!.uid}");
 
       final newSchedule = FeedingSchedule(
@@ -115,6 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
         label: label.trim(),
         measurement: measurement.trim(),
         breed: _selectedBreed!,
+        age: _selectedAge!.toString(), // Convert age to string for storage
       );
 
       print("Schedule created: ${newSchedule.toMap()}"); // Debug print
@@ -127,7 +138,6 @@ class _HomeScreenState extends State<HomeScreen> {
         feedingRecords.add(newSchedule);
       });
 
-      // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Feeding schedule created successfully!")),
       );
@@ -205,6 +215,16 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(
             onPressed: () {
+              // Notification button pressed
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('No new notifications')),
+              );
+            },
+            icon: const Icon(Icons.notifications),
+            tooltip: 'Notifications',
+          ),
+          IconButton(
+            onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -226,15 +246,6 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextField(
-              controller: _searchController,
-              decoration: const InputDecoration(
-                labelText: "Search Breed",
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 10),
             DropdownSearch<String>(
               popupProps: const PopupProps.menu(
                 showSearchBox: false,
@@ -249,6 +260,23 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               onChanged: (value) => setState(() => _selectedBreed = value),
               selectedItem: _selectedBreed,
+            ),
+            const SizedBox(height: 16),
+            DropdownSearch<int>(
+              // Changed to int for numeric selection
+              popupProps: const PopupProps.menu(
+                showSearchBox: false,
+                fit: FlexFit.loose,
+              ),
+              items: petAges,
+              dropdownDecoratorProps: DropDownDecoratorProps(
+                dropdownSearchDecoration: InputDecoration(
+                  labelText: "Select Age",
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              onChanged: (value) => setState(() => _selectedAge = value),
+              selectedItem: _selectedAge,
             ),
             const SizedBox(height: 16),
             nextFeeding == null

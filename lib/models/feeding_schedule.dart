@@ -9,6 +9,7 @@ class FeedingSchedule {
   final String label;
   final String measurement;
   final String breed;
+  final String age;
 
   FeedingSchedule({
     required this.userId,
@@ -16,6 +17,7 @@ class FeedingSchedule {
     required this.label,
     required this.measurement,
     required this.breed,
+    required this.age,
   });
 
   // Convert the FeedingSchedule object to a Map for Firestore storage
@@ -27,6 +29,7 @@ class FeedingSchedule {
       'label': label,
       'measurement': measurement,
       'breed': breed,
+      'age': age,
     };
     print("Map created: $map");
     return map;
@@ -40,6 +43,7 @@ class FeedingSchedule {
       label: map['label'] ?? '',
       measurement: map['measurement'] ?? '',
       breed: map['breed'] ?? '',
+      age: map['age'] ?? '',
     );
   }
 

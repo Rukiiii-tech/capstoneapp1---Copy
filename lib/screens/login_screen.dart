@@ -15,20 +15,42 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
+  @override
+  void initState() {
+    super.initState();
+    _checkIfLoggedIn();
+  }
+
+  // Check if the user is already logged in
+  Future<void> _checkIfLoggedIn() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      // If the user is already logged in, redirect to the home screen
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    }
+  }
+
+  // Sign in with email and password
   Future<void> signIn() async {
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
+
+      // Navigate to HomeScreen after successful login
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const HomeScreen()),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Login failed: ${e.toString()}")),
-      );
+      // Show error if login fails
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Login failed: ${e.toString()}")));
     }
   }
 
@@ -58,15 +80,17 @@ class _LoginScreenState extends State<LoginScreen> {
               TextFormField(
                 controller: _emailController,
                 decoration: const InputDecoration(labelText: "Email ID"),
-                validator: (value) =>
-                    value!.isEmpty ? 'Please enter your email' : null,
+                validator:
+                    (value) =>
+                        value!.isEmpty ? 'Please enter your email' : null,
               ),
               TextFormField(
                 controller: _passwordController,
                 obscureText: true,
                 decoration: const InputDecoration(labelText: "Password"),
-                validator: (value) =>
-                    value!.isEmpty ? 'Please enter your password' : null,
+                validator:
+                    (value) =>
+                        value!.isEmpty ? 'Please enter your password' : null,
               ),
               const SizedBox(height: 10),
               Row(
