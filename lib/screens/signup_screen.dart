@@ -95,6 +95,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
         User? user = userCredential.user;
 
         if (user != null) {
+          // ✅ Update display name in Firebase Auth
+          await user.updateDisplayName(fullName);
+          await user.reload(); // Optional, ensures the update takes effect
+
           // Create user profile in Firestore
           await FirestoreService().createUserProfile(
             user,

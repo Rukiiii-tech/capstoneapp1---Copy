@@ -103,10 +103,6 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  void signout() async {
-    await FirebaseAuth.instance.signOut();
-  }
-
   void _setFeedingSchedule() async {
     if (_selectedBreed == null ||
         _selectedYear == null ||
@@ -250,11 +246,6 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
             icon: const Icon(Icons.account_circle),
-          ),
-          IconButton(
-            onPressed: signout,
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
           ),
         ],
       ),
