@@ -5,8 +5,13 @@ import '../models/feeding_schedule.dart';
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // Create user profile if not exists
-  Future<void> createUserProfile(User user, String fullName) async {
+  // Create user profile if it does not exist
+  Future<void> createUserProfile(
+    User user,
+    String fullName, {
+    String? gender,
+    required DateTime birthday,
+  }) async {
     try {
       DocumentReference userRef = _db.collection('users').doc(user.uid);
 
@@ -25,7 +30,7 @@ class FirestoreService {
       }
     } catch (e) {
       print('Error creating user profile: $e');
-      rethrow;
+      rethrow; // Rethrow for higher-level error handling
     }
   }
 
@@ -54,7 +59,7 @@ class FirestoreService {
     } catch (e) {
       print('Error creating feeding schedule: $e');
       print('Error stack trace: ${StackTrace.current}');
-      rethrow;
+      rethrow; // Rethrow for higher-level error handling
     }
   }
 
@@ -67,12 +72,13 @@ class FirestoreService {
               .where('userId', isEqualTo: userId)
               .get();
 
+      // Safely map documents to FeedingSchedule objects
       return querySnapshot.docs.map((doc) {
         return FeedingSchedule.fromMap(doc.data() as Map<String, dynamic>);
       }).toList();
     } catch (e) {
       print('Error fetching feeding schedules: $e');
-      return [];
+      return []; // Return an empty list in case of error
     }
   }
 
@@ -81,10 +87,30 @@ class FirestoreService {
     try {
       DocumentSnapshot docSnapshot =
           await _db.collection('users').doc(userId).get();
-      return docSnapshot.data() as Map<String, dynamic>;
+
+      // Safely extract the data with null checks
+      if (docSnapshot.exists) {
+        // Make sure data exists and is correctly cast
+        Map<String, dynamic> userData =
+            docSnapshot.data() as Map<String, dynamic>;
+
+        // Check if fields exist and return default values if not present
+        String fullName =
+            userData['fullName'] ?? 'Unknown'; // Default if missing
+        String email =
+            userData['email'] ?? 'No email available'; // Default if missing
+
+        return {
+          'fullName': fullName,
+          'email': email,
+        }; // Return a map with safe values
+      } else {
+        print('User document not found for $userId');
+        return {}; // Return an empty map if the document is not found
+      }
     } catch (e) {
       print('Error fetching user data: $e');
-      return {};
+      return {}; // Return an empty map in case of error
     }
   }
 

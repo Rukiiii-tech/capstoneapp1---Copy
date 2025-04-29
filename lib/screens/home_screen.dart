@@ -19,7 +19,9 @@ class _HomeScreenState extends State<HomeScreen> {
   List<FeedingSchedule> feedingRecords = [];
 
   String? _selectedBreed;
-  int? _selectedAge; // Change to int for numeric age selection
+  int? _selectedYear;
+  int? _selectedMonth;
+
   final TextEditingController _searchController = TextEditingController();
 
   final List<String> breeds = [
@@ -45,11 +47,34 @@ class _HomeScreenState extends State<HomeScreen> {
     "Ragdoll",
   ];
 
-  // List for pet ages (numbers from 1 to 20)
-  final List<int> petAges = List.generate(
-    20,
-    (index) => index + 1,
-  ); // List of ages from 1 to 20
+  final List<String> petYears = [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+  ];
+
+  final List<String> petMonths = [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11",
+  ];
 
   List<String> filteredBreeds = [];
 
@@ -83,8 +108,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _setFeedingSchedule() async {
-    if (_selectedBreed == null || _selectedAge == null) {
-      // Check if both breed and age are selected
+    if (_selectedBreed == null ||
+        _selectedYear == null ||
+        _selectedMonth == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please select breed and age first")),
       );
@@ -114,24 +140,17 @@ class _HomeScreenState extends State<HomeScreen> {
       final measurement = await _askForMeasurement();
       if (measurement == null || measurement.trim().isEmpty) return;
 
-      print(
-        "Creating schedule with breed: $_selectedBreed, age: $_selectedAge",
-      );
-      print("User ID: ${user!.uid}");
-
       final newSchedule = FeedingSchedule(
         userId: user!.uid,
         time: DateTime(date.year, date.month, date.day, time.hour, time.minute),
         label: label.trim(),
         measurement: measurement.trim(),
         breed: _selectedBreed!,
-        age: _selectedAge!.toString(), // Convert age to string for storage
+        ageYears: _selectedYear!.toString(), // Fixed
+        ageMonths: _selectedMonth!.toString(), // Fixed
       );
 
-      print("Schedule created: ${newSchedule.toMap()}"); // Debug print
-
       await FirestoreService().createFeedingSchedule(newSchedule);
-      print("Schedule saved to Firestore"); // Debug print
 
       setState(() {
         nextFeeding = newSchedule;
@@ -139,10 +158,9 @@ class _HomeScreenState extends State<HomeScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Feeding schedule created successfully!")),
+        const SnackBar(content: Text("Feeding schedule created successfully!")),
       );
     } catch (e) {
-      print("Error creating feeding schedule: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error creating feeding schedule: $e")),
       );
@@ -215,7 +233,6 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(
             onPressed: () {
-              // Notification button pressed
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('No new notifications')),
               );
@@ -253,7 +270,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               items: filteredBreeds,
               dropdownDecoratorProps: DropDownDecoratorProps(
-                dropdownSearchDecoration: InputDecoration(
+                dropdownSearchDecoration: const InputDecoration(
                   labelText: "Select Breed",
                   border: OutlineInputBorder(),
                 ),
@@ -262,21 +279,42 @@ class _HomeScreenState extends State<HomeScreen> {
               selectedItem: _selectedBreed,
             ),
             const SizedBox(height: 16),
-            DropdownSearch<int>(
-              // Changed to int for numeric selection
-              popupProps: const PopupProps.menu(
-                showSearchBox: false,
-                fit: FlexFit.loose,
-              ),
-              items: petAges,
-              dropdownDecoratorProps: DropDownDecoratorProps(
-                dropdownSearchDecoration: InputDecoration(
-                  labelText: "Select Age",
-                  border: OutlineInputBorder(),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownSearch<String>(
+                    popupProps: const PopupProps.menu(showSearchBox: false),
+                    items: petYears,
+                    dropdownDecoratorProps: DropDownDecoratorProps(
+                      dropdownSearchDecoration: const InputDecoration(
+                        labelText: "Years",
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    onChanged:
+                        (value) =>
+                            setState(() => _selectedYear = int.parse(value!)),
+                    selectedItem: _selectedYear?.toString(),
+                  ),
                 ),
-              ),
-              onChanged: (value) => setState(() => _selectedAge = value),
-              selectedItem: _selectedAge,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: DropdownSearch<String>(
+                    popupProps: const PopupProps.menu(showSearchBox: false),
+                    items: petMonths,
+                    dropdownDecoratorProps: DropDownDecoratorProps(
+                      dropdownSearchDecoration: const InputDecoration(
+                        labelText: "Months",
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    onChanged:
+                        (value) =>
+                            setState(() => _selectedMonth = int.parse(value!)),
+                    selectedItem: _selectedMonth?.toString(),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             nextFeeding == null

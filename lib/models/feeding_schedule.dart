@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // Import the intl package for date formatting
+import 'package:intl/intl.dart';
 
-// Feeding Schedule model
-//April 27 Testing
 class FeedingSchedule {
   final String userId;
   final DateTime time;
   final String label;
   final String measurement;
   final String breed;
-  final String age;
+  final String ageYears;
+  final String ageMonths;
 
   FeedingSchedule({
     required this.userId,
@@ -17,25 +16,24 @@ class FeedingSchedule {
     required this.label,
     required this.measurement,
     required this.breed,
-    required this.age,
+    required this.ageYears,
+    required this.ageMonths,
   });
 
-  // Convert the FeedingSchedule object to a Map for Firestore storage
+  // Convert FeedingSchedule to a Firestore-compatible map
   Map<String, dynamic> toMap() {
-    print("Converting schedule to map");
-    Map<String, dynamic> map = {
+    return {
       'userId': userId,
       'time': time.toIso8601String(),
       'label': label,
       'measurement': measurement,
       'breed': breed,
-      'age': age,
+      'ageYears': ageYears,
+      'ageMonths': ageMonths,
     };
-    print("Map created: $map");
-    return map;
   }
 
-  // Create a FeedingSchedule object from Firestore data
+  // Factory constructor to create FeedingSchedule from Firestore data
   factory FeedingSchedule.fromMap(Map<String, dynamic> map) {
     return FeedingSchedule(
       userId: map['userId'] ?? '',
@@ -43,18 +41,22 @@ class FeedingSchedule {
       label: map['label'] ?? '',
       measurement: map['measurement'] ?? '',
       breed: map['breed'] ?? '',
-      age: map['age'] ?? '',
+      ageYears: map['ageYears']?.toString() ?? '0',
+      ageMonths: map['ageMonths']?.toString() ?? '0',
     );
   }
 
-  // Format the time as a user-friendly string using the intl package
+  // Format the time using intl package
   String formattedTime() {
     final DateFormat formatter = DateFormat('MM/dd/yyyy hh:mm a');
     return formatter.format(time);
   }
+
+  // Helper to format age nicely
+  String get formattedAge => "$ageYears year(s), $ageMonths month(s)";
 }
 
-// Feeding Schedule Card Widget to display each feeding schedule
+// Card UI Widget to display a feeding schedule
 class FeedingScheduleCard extends StatelessWidget {
   final FeedingSchedule schedule;
 
@@ -67,7 +69,10 @@ class FeedingScheduleCard extends StatelessWidget {
       child: ListTile(
         title: Text(schedule.label),
         subtitle: Text(
-          "${schedule.formattedTime()}\nBreed: ${schedule.breed}\nMeasurement: ${schedule.measurement}",
+          "${schedule.formattedTime()}\n"
+          "Breed: ${schedule.breed}\n"
+          "Age: ${schedule.formattedAge}\n"
+          "Measurement: ${schedule.measurement}",
         ),
       ),
     );
