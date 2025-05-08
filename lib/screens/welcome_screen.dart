@@ -1,91 +1,59 @@
 import 'package:flutter/material.dart';
-import 'login_screen.dart';
-import 'signup_screen.dart';
+import 'choices.dart'; // Import the correct ChoiceScreen file.
 
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
+
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _navigateToChoiceScreen();
+  }
+
+  // This method handles navigation to ChoiceScreen after a short delay
+  Future<void> _navigateToChoiceScreen() async {
+    // Add a delay to show the welcome screen for 2-3 seconds
+    await Future.delayed(const Duration(seconds: 2));
+
+    // After the delay, navigate to the ChoiceScreen and remove WelcomeScreen from the stack
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const ChoiceScreen()),
+      (route) =>
+          false, // Remove all previous routes, ensuring the WelcomeScreen doesn't stay in the stack
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       backgroundColor: colorScheme.background,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                "Welcome to",
-                style: TextStyle(fontSize: 24, color: colorScheme.onBackground),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.pets, // Add your custom icon here
+              size: 100,
+              color: colorScheme.primary,
+            ),
+            const SizedBox(height: 20),
+            Text(
+              "Welcome to Pet Feeding App!",
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: colorScheme.primary,
               ),
-              Text(
-                "Pet Feeding",
-                style: TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.primary,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                "Healthy Pets meals at your finger tips...",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: colorScheme.onBackground.withOpacity(0.6),
-                ),
-              ),
-              const SizedBox(height: 30),
-              Image.asset('dogcatt.png', height: 200),
-              const SizedBox(height: 30),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 50),
-                  backgroundColor: colorScheme.primary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const LoginScreen(),
-                    ),
-                  );
-                },
-                child: Text(
-                  "Log in",
-                  style: TextStyle(color: colorScheme.onPrimary),
-                ),
-              ),
-              const SizedBox(height: 15),
-              OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 50),
-                  side: BorderSide(color: colorScheme.primary),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const SignUpScreen(),
-                    ),
-                  );
-                },
-                child: Text(
-                  "Sign up",
-                  style: TextStyle(color: colorScheme.primary),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

@@ -1,12 +1,18 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart';
+import 'screens/choices.dart';
 import 'screens/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    print("Error initializing Firebase: $e");
+  }
+
   runApp(const MyApp());
 }
 
@@ -20,22 +26,22 @@ class MyApp extends StatelessWidget {
       title: 'Pet Feeding',
       theme: ThemeData(
         fontFamily: 'ComicNeue',
-        colorScheme: ColorScheme(
+        colorScheme: const ColorScheme(
           brightness: Brightness.light,
-          primary: const Color(0xFF8B5E3C),
+          primary: Color(0xFF8B5E3C),
           onPrimary: Colors.white,
-          secondary: const Color(0xFFC8AD7F),
+          secondary: Color(0xFFC8AD7F),
           onSecondary: Colors.black,
           error: Colors.red,
           onError: Colors.white,
-          background: const Color(0xFFFFF8F0),
+          background: Color(0xFFFFF8F0),
           onBackground: Colors.black,
           surface: Colors.white,
           onSurface: Colors.black,
         ),
         useMaterial3: true,
       ),
-      home: const AuthWrapper(), // NEW: handles user state
+      home: const AuthWrapper(),
     );
   }
 }
@@ -48,21 +54,49 @@ class AuthWrapper extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // Show loading screen while checking auth state
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          return const SplashScreen();
         }
 
-        // If user is logged in
         if (snapshot.hasData) {
-          return const HomeScreen();
+          return const ChoiceScreen();
         }
 
-        // If not logged in
         return const LoginScreen();
       },
+    );
+  }
+}
+
+class SplashScreen extends StatelessWidget {
+  const SplashScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.pets,
+              size: 100,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Welcome to Pet Feeding',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 20),
+            const CircularProgressIndicator(),
+          ],
+        ),
+      ),
     );
   }
 }

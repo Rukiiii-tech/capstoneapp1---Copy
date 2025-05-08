@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'login_screen.dart'; // Ensure this is correctly imported
-import 'package:intl/intl.dart'; // For formatting date
 
 class ProfileEditScreen extends StatefulWidget {
   const ProfileEditScreen({super.key});
@@ -14,8 +14,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _birthdayController = TextEditingController();
-  String? _selectedGender;
 
   bool _isPasswordVisible = false;
   bool _isEmailVisible = false;
@@ -24,16 +22,34 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
   User? user = FirebaseAuth.instance.currentUser;
 
-  final List<String> genders = ["Male", "Female", "Other"];
-
   @override
   void initState() {
     super.initState();
     if (user != null) {
-      _nameController.text = user?.displayName ?? "No Name Available";
       _emailController.text = user?.email ?? "No Email Available";
-      // Here, we should ideally fetch the birthday and gender from Firestore if stored.
-      // For now, we'll assume they are not available, or you can set them to some default value.
+      // Fetch user details from Firestore
+      _fetchUserProfile();
+    }
+  }
+
+  // Fetch user profile details from Firestore
+  Future<void> _fetchUserProfile() async {
+    try {
+      DocumentSnapshot userDoc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user!.uid)
+              .get();
+
+      if (userDoc.exists) {
+        setState(() {
+          _nameController.text = userDoc['fullName'] ?? 'No Name Available';
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error loading user profile")),
+      );
     }
   }
 
@@ -42,24 +58,35 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     _nameController.dispose();
     _passwordController.dispose();
     _emailController.dispose();
-    _birthdayController.dispose();
     super.dispose();
   }
 
   Future<void> _updateProfile() async {
     try {
       if (user != null && _nameController.text.isNotEmpty) {
+        // Update display name in Firebase Auth
         await user!.updateDisplayName(_nameController.text);
+
+        // Check if password is changed and update
         if (_isPasswordChanged && _passwordController.text.isNotEmpty) {
           await user!.updatePassword(_passwordController.text);
         }
+
+        // Check if email is changed and update
         if (_isEmailChanged && _emailController.text.isNotEmpty) {
           await user!.updateEmail(_emailController.text);
         }
 
-        // You can update the user's profile with the gender and birthday here if needed.
-        // Firebase doesn't natively support storing these, so you might need Firestore for storing these details.
+        // Update user data in Firestore (no gender or birthday update)
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user!.uid)
+            .update({
+              'fullName': _nameController.text,
+              'email': _emailController.text,
+            });
 
+        // Reload user to get the updated profile
         await user!.reload();
         setState(() {
           user = FirebaseAuth.instance.currentUser;
@@ -80,28 +107,18 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     }
   }
 
+  // Function to log out the user
   Future<void> _logout() async {
-    await FirebaseAuth.instance.signOut();
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-    );
-  }
-
-  Future<void> _selectBirthday() async {
-    DateTime? selectedDate = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-    );
-
-    if (selectedDate != null) {
-      setState(() {
-        _birthdayController.text = DateFormat(
-          'yyyy-MM-dd',
-        ).format(selectedDate);
-      });
+    try {
+      await FirebaseAuth.instance.signOut();
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Error logging out")));
     }
   }
 
@@ -113,21 +130,37 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
         title: const Text("Edit Profile"),
+        backgroundColor: Theme.of(context).colorScheme.primary,
         actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.settings),
-            onSelected: (value) {
-              if (value == 'logout') {
-                _logout();
-              }
-            },
-            itemBuilder: (BuildContext context) {
-              return [
-                const PopupMenuItem<String>(
-                  value: 'logout',
-                  child: Text('Log Out'),
-                ),
-              ];
+          // Settings Icon Button
+          IconButton(
+            icon: const Icon(Icons.exit_to_app),
+            iconSize: 35, // Increased icon size for mobile
+            onPressed: () {
+              // Open settings menu or show options
+              showDialog(
+                context: context,
+                builder:
+                    (context) => AlertDialog(
+                      title: const Text("Log out?"),
+                      content: const Text("Are you sure you want to Log out?"),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context); // Close the dialog
+                          },
+                          child: const Text("Cancel"),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context); // Close the dialog
+                            _logout(); // Call logout function
+                          },
+                          child: const Text("Logout"),
+                        ),
+                      ],
+                    ),
+              );
             },
           ),
         ],
@@ -135,17 +168,25 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Name field
+            // Name field with larger text
             TextFormField(
               controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Full Name'),
+              style: TextStyle(fontSize: 18), // Larger font size
+              decoration: const InputDecoration(
+                labelText: 'Full Name',
+                labelStyle: TextStyle(fontSize: 18), // Larger label size
+              ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
 
-            // Optional: Email change section
+            // Optional: Email change section with larger text
             SwitchListTile(
-              title: const Text('Change Email'),
+              title: Text(
+                'Change Email',
+                style: TextStyle(fontSize: 18), // Larger text
+              ),
               value: _isEmailVisible,
               onChanged: (bool value) {
                 setState(() {
@@ -158,7 +199,11 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             if (_isEmailVisible)
               TextFormField(
                 controller: _emailController,
-                decoration: const InputDecoration(labelText: 'New Email'),
+                style: TextStyle(fontSize: 18), // Larger font size
+                decoration: const InputDecoration(
+                  labelText: 'New Email',
+                  labelStyle: TextStyle(fontSize: 18), // Larger label size
+                ),
                 keyboardType: TextInputType.emailAddress,
                 onChanged: (email) {
                   _isEmailChanged =
@@ -167,9 +212,12 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               ),
             const SizedBox(height: 20),
 
-            // Optional: Password change section
+            // Optional: Password change section with larger text
             SwitchListTile(
-              title: const Text('Change Password'),
+              title: Text(
+                'Change Password',
+                style: TextStyle(fontSize: 18), // Larger text
+              ),
               value: _isPasswordVisible,
               onChanged: (bool value) {
                 setState(() {
@@ -182,8 +230,12 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             if (_isPasswordVisible)
               TextFormField(
                 controller: _passwordController,
+                style: TextStyle(fontSize: 18), // Larger font size
                 obscureText: true,
-                decoration: const InputDecoration(labelText: 'New Password'),
+                decoration: const InputDecoration(
+                  labelText: 'New Password',
+                  labelStyle: TextStyle(fontSize: 18), // Larger label size
+                ),
                 onChanged: (password) {
                   _isPasswordChanged =
                       true; // Set the flag to indicate password change
@@ -191,41 +243,19 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               ),
             const SizedBox(height: 20),
 
-            // Birthday field
-            TextFormField(
-              controller: _birthdayController,
-              decoration: const InputDecoration(
-                labelText: 'Birthday',
-                hintText: 'Select your birthday',
-              ),
-              readOnly: true,
-              onTap: _selectBirthday,
-            ),
-            const SizedBox(height: 20),
-
-            // Gender selection
-            DropdownButtonFormField<String>(
-              value: _selectedGender,
-              decoration: const InputDecoration(labelText: 'Gender'),
-              items:
-                  genders.map((String gender) {
-                    return DropdownMenuItem<String>(
-                      value: gender,
-                      child: Text(gender),
-                    );
-                  }).toList(),
-              onChanged: (String? newGender) {
-                setState(() {
-                  _selectedGender = newGender;
-                });
-              },
-            ),
-            const SizedBox(height: 20),
-
-            // Save Changes Button
+            // Save Changes Button with larger text
             ElevatedButton(
               onPressed: _updateProfile,
-              child: const Text('Save Changes'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 15,
+                  horizontal: 30,
+                ),
+              ),
+              child: const Text(
+                'Save Changes',
+                style: TextStyle(fontSize: 18), // Larger text for the button
+              ),
             ),
           ],
         ),
